@@ -51,4 +51,4 @@ def strip_punctuations(ls):
 
 
 if __name__ == "__main__":
-    print (Word(0,"test"))
+    print((Word(0,"test")))

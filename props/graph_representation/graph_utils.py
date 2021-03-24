@@ -13,6 +13,7 @@ import time
 from props.graph_representation import newNode
 from operator import itemgetter
 import logging
+from functools import reduce
 
 def accessibility_wo_self(graph):
     ret = accessibility(graph)
@@ -86,7 +87,7 @@ def findChain(graph, func_ls):
     def inner(nodes, func_ls):
         if (len(func_ls) == 0):
             return []
-        remaining_nodes = filter(func_ls[0], nodes)
+        remaining_nodes = list(filter(func_ls[0], nodes))
         for node in remaining_nodes:
             curAns = inner(graph.neighbors(node), func_ls[1:])
             if (len(curAns) == len(func_ls) - 1):
@@ -187,7 +188,7 @@ def find_nodes(graph, filterFunc):
     @rtype list(Node)
     @param list of Node objects matching filter func.
     """
-    return filter(filterFunc, graph.nodes())
+    return list(filter(filterFunc, graph.nodes()))
 
 
 def find_edges(graph, filterFunc):
@@ -203,7 +204,7 @@ def find_edges(graph, filterFunc):
     @rtype list(edges)
     @param list of edges matching filter func. 
     """
-    return filter(filterFunc, graph.edges())
+    return list(filter(filterFunc, graph.edges()))
 
 
 
@@ -438,7 +439,7 @@ def find_top_of_component(graph, source_node):
     """
     _, d = shortest_path(reverse_graph_edges(graph), # Reverse graph to go up
                          source = source_node)
-    return max(d.iteritems(),
+    return max(iter(d.items()),
                key = itemgetter(1))[0] # Returns the farthest away node
 
 def reverse_graph_edges(graph):

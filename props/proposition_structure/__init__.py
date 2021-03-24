@@ -1,1 +1,1 @@
-import proposition_structure
+from . import proposition_structure

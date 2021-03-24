@@ -26,7 +26,7 @@ Options:
 import os, sys, string
 HOME_DIR = os.environ.get("PROPEXTRACTION_HOME_DIR", './')+"/"
 
-import run
+from . import run
 import json
 from props.webinterface import bottle
 from props.applications.viz_tree import DepTreeVisualizer
@@ -35,7 +35,7 @@ import fileinput
 bottle.debug(True)
 import os.path
 import codecs
-from cStringIO import StringIO
+from io import StringIO
 import sys,time,datetime
 from subprocess import call
 from docopt import docopt
@@ -65,7 +65,7 @@ def main(arguments):
     elif arguments["--dontfilter"]:
         sents = [x for x in arguments["FILE"]]
     else:
-        sents = [filter(lambda x: x in string.printable, s) for s in arguments["FILE"]] 
+        sents = [[x for x in s if x in string.printable] for s in arguments["FILE"]] 
 
     
     for sent in sents:
@@ -80,24 +80,24 @@ def main(arguments):
         
         # print sentence (only if in graphical mode)
         if (arguments["--original"]):
-            print(sent+sep)
+            print((sent+sep))
             
         #print dependency tree
         if (arguments['--dep']):
             if graphical:
-                print(d.as_svg(compact=True,flat=True)+sep)
+                print((d.as_svg(compact=True,flat=True)+sep))
             else:
                 print(tree)
         
         #print PropS output
         if graphical:        
-            print(dot.create(format='svg')+sep)
+            print((dot.create(format='svg')+sep))
         else:
             print(g)
         
         #print open ie like extractions
         if (arguments["--oie"]):
-            print(sep.join([str(prop) for prop in g.getPropositions(outputType)]))
+            print((sep.join([str(prop) for prop in g.getPropositions(outputType)])))
             
     
 

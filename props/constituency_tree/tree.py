@@ -1,7 +1,7 @@
 # encoding: cp1255
-import sexprs
+from . import sexprs
 import copy
-import cPickle as pickle
+import pickle as pickle
 
 # LingTree is a class representing a constituency tree/sub-tree
 class LingTree:
@@ -30,7 +30,7 @@ class LingTree:
       if start_id_count:
           self.from_sexpr_static_counter = 0
           self.from_sexpr_static_counter_dep_id = 0
-      if isinstance(sexpr,list) and len(sexpr) == 2 and isinstance(sexpr[0],unicode) and isinstance(sexpr[1],unicode):
+      if isinstance(sexpr,list) and len(sexpr) == 2 and isinstance(sexpr[0],str) and isinstance(sexpr[1],str):
          self.from_sexpr_static_counter += 1
          if tuple(sexpr)[0] == "-NONE-":
              return Leaf(tuple(sexpr),self.from_sexpr_static_counter,-1)
@@ -63,7 +63,7 @@ class LingTree:
 
    # returns string represents the tree
    def __str__(self):
-      return "(%s: %s)" % (self.get_name(), map(lambda x:x.get_name(),self.childs))
+      return "(%s: %s)" % (self.get_name(), [x.get_name() for x in self.childs])
 
    # returns list of node's leafs
    def collect_leaves(self,ignore_empties=True):
@@ -92,21 +92,21 @@ class LingTree:
       pos_transformer: a function from string to string to be applied on all
       POStag strings
       """
-      self.apply_to_leaves(lambda leaf:Leaf.from_str(u"((%s %s))" % (pos_transformer(leaf.get_pos()), leaf.get_word()))) 
+      self.apply_to_leaves(lambda leaf:Leaf.from_str("((%s %s))" % (pos_transformer(leaf.get_pos()), leaf.get_word()))) 
 
    def transform_word(self, word_transformer):
       """
       word_transformer: a function from string to string to be applied on all
       word(lexical) strings
       """
-      self.apply_to_leaves(lambda leaf:Leaf.from_str(u"((%s %s))" % (leaf.get_pos(), word_transformer(leaf.get_word())))) 
+      self.apply_to_leaves(lambda leaf:Leaf.from_str("((%s %s))" % (leaf.get_pos(), word_transformer(leaf.get_word())))) 
 
    def transform_pos_word(self, pw_transformer):
       """
       pw_transformer: a function from (str,str) to (str,str) to be applied on all
       (pos,word) strings
       """
-      self.apply_to_leaves(lambda leaf:Leaf.from_str(u"((%s %s))" % (pw_transformer(leaf.get_pos(), leaf.get_word())))) 
+      self.apply_to_leaves(lambda leaf:Leaf.from_str("((%s %s))" % (pw_transformer(leaf.get_pos(), leaf.get_word())))) 
       
    def as_sexpr(self):
       return "(%s %s)" % (self.get_name(), "".join([x.as_sexpr() for x in self.childs]))
@@ -148,13 +148,13 @@ class LingTree:
       sent = []
       for leaf in self.collect_leaves():
          sent.append(leaf.value[1])
-      return u" ".join(sent)
+      return " ".join(sent)
 
    def as_tagged_sent(self):
       sent = []
       for leaf in self.collect_leaves():
          sent.append("%s/%s" % (leaf.value[1], leaf.value[0]))
-      return u" ".join(sent)
+      return " ".join(sent)
 
    def as_postags_sequence(self):
       sent = []
@@ -278,7 +278,7 @@ class Leaf(LingTree):
       return [self]
 
    def is_empty(self):
-      return self.value[1] in [u'*PRO*',u'*T*',u'*NONE*'] or self.value[0] in [u'-NONE-']
+      return self.value[1] in ['*PRO*','*T*','*NONE*'] or self.value[0] in ['-NONE-']
 
    def is_punct(self):
       return self.get_pos().startswith("yy")
@@ -293,14 +293,14 @@ class Leaf(LingTree):
       if predicate(self): yield self
 
 def from_str(s):
-   return LingTree.from_str(unicode(s))
+   return LingTree.from_str(str(s))
 
 def read_from_filenames_onetreeperline(fs,double_paren=False):
    for f in fs:
       for line in file(f):
          line = line.strip()
          if not double_paren: line = "(%s)" % line
-         yield f,LingTree.from_str(unicode(line))
+         yield f,LingTree.from_str(str(line))
 
 def read_from_filenames_sexprs(fs,double_paren=False):
    import codecs
@@ -310,7 +310,7 @@ def read_from_filenames_sexprs(fs,double_paren=False):
          yield f, LingTree.from_sexpr(sexpr)
 
 
-__t = u"""
+__t = """
  (
  (S
     (PP-LOC (IN Under)

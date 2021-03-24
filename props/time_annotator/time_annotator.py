@@ -1,7 +1,7 @@
 #from py4j.java_gateway import JavaGateway
 import json
 from collections import defaultdict
-from annotation import Annotation
+from .annotation import Annotation
 
 class TimeAnnotator:
 
@@ -15,7 +15,7 @@ class TimeAnnotator:
         for line in f:
             line = line.strip()
             if line != "":
-                annotations_list = [Annotation(int(begin_index) + 1, int(end_index), time_expression, timex3) for begin_index, end_index, time_expression, timex3 in map(None, *([iter(line.split("\t"))] * 4))]
+                annotations_list = [Annotation(int(begin_index) + 1, int(end_index), time_expression, timex3) for begin_index, end_index, time_expression, timex3 in list(*([iter(line.split("\t"))] * 4))]
             else:
                 annotations_list = []
 

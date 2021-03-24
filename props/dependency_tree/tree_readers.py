@@ -172,7 +172,7 @@ def create_dep_trees_from_stream(stream, wsjInfo_exists, collapsed=False):
        # Here all tree nodes are already parsed
        else:
            # Going through all nodes and update connections between them
-           for i in filter(lambda x:x,dep_trees_nodes.keys()):
+           for i in [x for x in list(dep_trees_nodes.keys()) if x]:
                node_data = dep_trees_data[i]
                node = dep_trees_nodes[i]
                parent_id = int (node_data[6])
@@ -258,7 +258,7 @@ def shell():
     s = ""
     ts = create_dep_trees_from_stream(sys.stdin, False)
     for t in ts:
-        print t
+        print(t)
         t[0].draw()
     
 #     while True:
@@ -271,7 +271,7 @@ def shell():
 def readNLTK():
 	import sys
 	from nltk.tree import Tree
-	Tree("".join(map(lambda l: l.strip(), sys.stdin.readlines()))).draw()
+	Tree("".join([l.strip() for l in sys.stdin.readlines()])).draw()
 
 
 if __name__ == "__main__":

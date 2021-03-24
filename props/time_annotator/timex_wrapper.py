@@ -1,4 +1,4 @@
-from timex import ground,tag
+from .timex import ground,tag
 from graph_representation.word import Word
 from mx.DateTime.DateTime import gmt 
 

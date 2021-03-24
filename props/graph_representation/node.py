@@ -586,7 +586,7 @@ def join(node1,node2,gr):
     # make sure everything is ok
     if node1.isPredicate != node2.isPredicate:
         #raise Exception("Contradicting isPredicate value")
-        print "Contradicting isPredicate value"
+        print("Contradicting isPredicate value")
                 
     if (not node1.valid) or (not node2.valid):
         raise Exception("Invalid node cannot be joined")

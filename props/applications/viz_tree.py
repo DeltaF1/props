@@ -1,5 +1,5 @@
 from xml.etree import ElementTree as et
-import cStringIO as strio
+import io as strio
 from collections import defaultdict
 
 square_edges = True
@@ -193,7 +193,7 @@ class DepTreeVisualizer:
 
         #et.SubElement(doc,'line',x1="0",x2="100",y1=str(max_y),y2=str(max_y),stroke="black")
 
-        for n in viz_nodes.values():
+        for n in list(viz_nodes.values()):
             n.svg(doc)
 
         for arc in self.arcs:
@@ -223,7 +223,7 @@ class DepTreeVisualizer:
         marker = et.XML("""<defs><marker id="marker" viewBox="0 0 10 10" refX="7" refY="5" markerUnits="strokeWidth" orient="auto" markerWidth="4" markerHeight="5"> <polyline points="0,0 10,5 0,10 1,5" stroke="currentColor" /> </marker></defs>""")
         doc.append(marker)
 
-        for n in viz_nodes.values():
+        for n in list(viz_nodes.values()):
             n.svg(doc)
 
         #ArcViz = ArcVizDirColor
@@ -273,7 +273,7 @@ class DepTreeVisualizer:
         marker = et.XML("""<defs><marker id="marker" viewBox="0 0 10 10" refX="7" refY="5" markerUnits="strokeWidth" orient="auto" markerWidth="4" markerHeight="5"> <polyline points="0,0 10,5 0,10 1,5" stroke="currentColor" /> </marker></defs>""")
         doc.append(marker)
 
-        for n in viz_nodes.values():
+        for n in list(viz_nodes.values()):
             n.svg(doc)
             #et.SubElement(doc, "circle", cx=str(n.center_x()), cy=str(n.top()), r='3')
 
@@ -361,5 +361,5 @@ if __name__ == '__main__':
 18     in     _     IN     IN     _     12     ADV     _     _
 19     1990     _     CD     CD     _     18     PMOD     _     _
 20     .     _     .     .     _     5     P     _     _ """)
-    print "<div>",d.as_svg(compact=True,flat=True),"</div>"
+    print("<div>",d.as_svg(compact=True,flat=True),"</div>")
   # print "<div>",d.as_svg(compact=False),"</div>"

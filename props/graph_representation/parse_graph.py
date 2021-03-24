@@ -814,7 +814,7 @@ class appendix_types:
     def add(self,obj):
         self._update(obj, add=+1)
     def getSet(self):
-        return set([k for k in self.d.keys() if self.d[k]>0])
+        return set([k for k in list(self.d.keys()) if self.d[k]>0])
     def union(self,other):
         for k in other.d:
             self._update(obj=k, add=other.d[k])

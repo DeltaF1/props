@@ -44,12 +44,12 @@ def tree_to_graph(tree):
 
     ret = GraphWrapper(tree[0].original_sentence,HOME_DIR)
     graphNodes = {}
-    for t in tree.values():
+    for t in list(tree.values()):
         if t.id:
             if t.parent_relation != "erased":
 
                 graphNodes[t.id]=treeNode_to_graphNode(t,ret)
-    for t in tree.values():
+    for t in list(tree.values()):
         if t.id:
             curParent =t.parent.id
             if curParent:
@@ -60,14 +60,14 @@ def tree_to_graph(tree):
 
 def collapse_graph(gr):
     # prepositions
-    prep_edges = find_edges(graph=gr, filterFunc = lambda (u,v): gr.edge_label((u,v))=="prep" and gr.neighbors(v)==1)
+    prep_edges = find_edges(graph=gr, filterFunc = lambda u_v: gr.edge_label((u_v[0],u_v[1]))=="prep" and gr.neighbors(u_v[1])==1)
     for u,v in prep_edges:
         pobj = gr.neighbors(v)[0]
         gr.add_edge((u,pobj),"prep_"+v.text[0].word.lower())
         gr.del_node(v)
         
     # conjunctions
-    conj_edges = find_edges(graph=gr, filterFunc = lambda (u,v): gr.edge_label((u,v))=="conj" and len(u.neighbors().get("cc",[]))==1)
+    conj_edges = find_edges(graph=gr, filterFunc = lambda u_v1: gr.edge_label((u_v1[0],u_v1[1]))=="conj" and len(u_v1[0].neighbors().get("cc",[]))==1)
     toDel = []
     for u,v in conj_edges:
         cc = u.neighbors()['cc'][0]
@@ -107,7 +107,7 @@ class appendix_types:
     def add(self,obj):
         self._update(obj, add=+1)
     def getSet(self):
-        return set([k for k in self.d.keys() if self.d[k]>0])
+        return set([k for k in list(self.d.keys()) if self.d[k]>0])
     def union(self,other):
         for k in other.d:
             self._update(obj=k, add=other.d[k])
@@ -207,17 +207,17 @@ if __name__ == "__main__":
     import fileinput
     trees = dependency_tree.tree_readers.create_dep_trees_from_stream(fileinput.input(), wsjInfo_exists=False)
     for tree in trees:
-	try:
-	        gr = tree_to_graph(tree)
-        	gr = collapse_graph(gr)
-	        gr = convert(gr)
-	        print gr
-	except:
-		pass
+        try:
+            gr = tree_to_graph(tree)
+            gr = collapse_graph(gr)
+            gr = convert(gr)
+            print(gr)
+        except:
+            pass
         gr = tree_to_graph(tree)
         gr = collapse_graph(gr)
         gr = convert(gr)
-        print gr
+        print(gr)
 #    f.close()
 
         

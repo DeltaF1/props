@@ -6,7 +6,7 @@ from props.proposition_structure.syntactic_item import get_verbal_features
 from copy import copy
 from props.graph_representation.convert import convert
 from props.graph_representation.newNode import resetCounter
-from StringIO import StringIO
+from io import StringIO
 import logging
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     load_berkeley()
     try:
         while True:
-            gs = parseSentences(raw_input("> "),HOME_DIR)
+            gs = parseSentences(input("> "),HOME_DIR)
             for g,tree in gs:
                 if tree:
                     g.draw()

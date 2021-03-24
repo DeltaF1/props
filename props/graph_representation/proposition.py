@@ -44,7 +44,7 @@ class Proposition:
             color = lambda t,color:'<font color="{0}">{1}</font>'.format(color,t)
             
         curProp = r'{0}:({1})'.format(bold(self.pred),
-                                      ", ".join([rel + ":" + bold(color(arg,"blue")) for rel,arg in sorted(self.args,key=lambda(rel,_):self.rel_order(rel))]))
+                                      ", ".join([rel + ":" + bold(color(arg,"blue")) for rel,arg in sorted(self.args,key=lambda rel__:self.rel_order(rel__[0]))]))
         return curProp
 
 mapPossessive = {"my":"I",

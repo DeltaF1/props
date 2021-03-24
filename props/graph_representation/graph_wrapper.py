@@ -25,6 +25,7 @@ from itertools import product
 from props.graph_representation.proposition import Proposition
 from copy import copy, deepcopy
 from props.graph_representation import newNode
+from functools import reduce
 # from ctypes.wintypes import WORD
 
 
@@ -132,7 +133,7 @@ class GraphWrapper(digraph):
 
     def get_components(self):
         graph_components = accessibility(self)
-        return {self.nodesMap[key.uid]:[self.nodesMap[v.uid] for v in value] for key, value in graph_components.iteritems() }
+        return {self.nodesMap[key.uid]:[self.nodesMap[v.uid] for v in value] for key, value in graph_components.items() }
 
     def add_node(self, node):
         """
@@ -153,7 +154,7 @@ class GraphWrapper(digraph):
         """
         del(self.nodesMap[node.uid])
         # remove this node from any future propagation
-        for curNode in self.nodesMap.values():
+        for curNode in list(self.nodesMap.values()):
             if node in curNode.propagateTo:
                 curNode.propagateTo.remove(node)
         digraph.del_node(self, node.uid)
@@ -176,7 +177,7 @@ class GraphWrapper(digraph):
 
         u, v = edge
         if v not in self.neighbors(u):
-            print "1"
+            print("1")
         if isinstance(u, Node):
             digraph.del_edge(self, edge=(u.uid, v.uid))
         else:
@@ -256,7 +257,8 @@ class GraphWrapper(digraph):
         else:
             return digraph.edge_label(self, edge)
         
-    def has_edge(self, (u, v)):
+    def has_edge(self, xxx_todo_changeme):
+        (u, v) = xxx_todo_changeme
         return digraph.has_edge(self, (u.uid, v.uid))
 
 
@@ -285,10 +287,11 @@ class GraphWrapper(digraph):
         
         call("dot -T{1} {0}.dot -o {0}.{1}".format(filename, filetype).split())
         
-    def is_aux_edge(self, (src, dst)):
+    def is_aux_edge(self, xxx_todo_changeme15):
         """
         src and dst should be uid's of nodes!
         """
+        (src, dst) = xxx_todo_changeme15
         label = self.edge_label((src, dst))
         if (not self.nodesMap[src].isPredicate) or ((label not in arguments_dependencies + clausal_complements)):# and (not label.startswith("prep"))):
             return True
@@ -302,7 +305,7 @@ class GraphWrapper(digraph):
         entities = dict([(uid, {'predicate': bool(node.isPredicate), 
                                 'feats': self.getFeatsDic(node),  
                                 'charIndices': (0,0) if not node.text else self.nodeToCharIndices(node)})
-                         for uid, node in self.nodesMap.items()])
+                         for uid, node in list(self.nodesMap.items())])
         edges = [(src, dest, self.edge_label((src, dest))) for (src, dest) in digraph.edges(self)]
         return (entities, edges)
     
@@ -369,22 +372,22 @@ class GraphWrapper(digraph):
                 dotNode.set_fontcolor(TOPNODE_COLOR)
                 
             ##### for debug #####
-            if curNode.features.has_key("Nominal"):
+            if "Nominal" in curNode.features:
                dotNode.set_color("blue")
                dotNode.set_fontcolor("blue")
-            if curNode.features.has_key("VADAS"):
+            if "VADAS" in curNode.features:
                dotNode.set_color("green")
                dotNode.set_fontcolor("green")
-            if curNode.features.has_key("traces"):
+            if "traces" in curNode.features:
                dotNode.set_color("orange")
                dotNode.set_fontcolor("orange")
-            if curNode.features.has_key("LV"):
+            if "LV" in curNode.features:
                dotNode.set_color("purple")
                dotNode.set_fontcolor("purple")
-            if curNode.features.has_key("heuristics"):
+            if "heuristics" in curNode.features:
                dotNode.set_color("teal")
                dotNode.set_fontcolor("teal")
-            if curNode.features.has_key("debug"):
+            if "debug" in curNode.features:
                 dotNode.set_color("blue")
                 dotNode.set_fontcolor("blue")
 
@@ -421,7 +424,7 @@ class GraphWrapper(digraph):
                 self.del_node(v)
         
     def _merge(self):
-        edges = find_edges(self, lambda (u,v):(self.edge_label((u,v)) in join_labels) or (self.edge_label((u,v))=="conj_and" and u.features.get("conjType",[""])[0]=='&'))
+        edges = find_edges(self, lambda u_v:(self.edge_label((u_v[0],u_v[1])) in join_labels) or (self.edge_label((u_v[0],u_v[1]))=="conj_and" and u_v[0].features.get("conjType",[""])[0]=='&'))
         for u, v in edges:
             conjType = u.features.get("conjType",False)
             if conjType:
@@ -442,20 +445,20 @@ class GraphWrapper(digraph):
         
     def _fix(self):
         # remove mark->that
-        edges = find_edges(self, lambda (u, v):self.edge_label((u, v)) == "mark")
+        edges = find_edges(self, lambda u_v1:self.edge_label((u_v1[0], u_v1[1])) == "mark")
         for (u, v) in edges:
             if (len(self.neighbors(v)) == 0) and (len(v.text) == 1) and (v.text[0].word == "that"):
                 self.del_node(v)
                 return True
         
         # rcmod with no relation to father
-        edges = find_edges(self, lambda (u, v):(self.edge_label((u, v)) == "rcmod") and (not self.has_edge((v, u))))
+        edges = find_edges(self, lambda u_v2:(self.edge_label((u_v2[0], u_v2[1])) == "rcmod") and (not self.has_edge((u_v2[1], u_v2[0]))))
         for u, v in edges:
             self.add_edge((v, u), label=ARG_LABEL)
             return True
         
         # prep collapse
-        edges = find_edges(self, lambda (u, v):(self.edge_label((u, v)) == "prep") and (len(self.neighbors(v)) == 1) and ("pobj" in v.neighbors()))
+        edges = find_edges(self, lambda u_v3:(self.edge_label((u_v3[0], u_v3[1])) == "prep") and (len(self.neighbors(u_v3[1])) == 1) and ("pobj" in u_v3[1].neighbors()))
         if edges:
             for (u, v) in edges:
                 pobj = v.neighbors()["pobj"][0]
@@ -466,8 +469,8 @@ class GraphWrapper(digraph):
                     self.del_node(v)
                     
         # fix dependency collapse bugs
-        edges = find_edges(self, lambda (u, v):(self.edge_label((u, v)) == "pobj") and ("prep" not in u.incidents()))
-        for (u, v) in sorted(edges,key=lambda((u,v)): u.minIndex()):
+        edges = find_edges(self, lambda u_v4:(self.edge_label((u_v4[0], u_v4[1])) == "pobj") and ("prep" not in u_v4[0].incidents()))
+        for (u, v) in sorted(edges,key=lambda u_v5: u_v5[0].minIndex()):
             neighbors = u.neighbors()
             candidates = [n for n in multi_get(neighbors, [rel for rel in neighbors if rel.startswith("prepc_")]) if len(self.neighbors(n)) == 0]
             candidates.sort(key=lambda n:n.minIndex())
@@ -543,7 +546,7 @@ class GraphWrapper(digraph):
                 for nlist in neigboursList:
                     argList = []
                     all_neighbours = [n for _, n in nlist]
-                    for k, curNeighbour in sorted(nlist, key=lambda(k, n):get_min_max_span(self, n)[0]):
+                    for k, curNeighbour in sorted(nlist, key=lambda k_n:get_min_max_span(self, k_n[1])[0]):
                         curExclude = [n for n in all_neighbours if n != curNeighbour] + [topNode]
                         argList.append([k, subgraph_to_string(self, curNeighbour, exclude=curExclude)])
                     curProp = Proposition(topNode.get_original_text(), argList, outputType)
@@ -559,7 +562,7 @@ class GraphWrapper(digraph):
                 self.add_edge(edge,label = normalize_labels_dic[edgeLabel])
     
     def do_vmod_relclause(self):
-        edges = find_edges(self, lambda (u, v):(self.edge_label((u, v)) == "rcmod"))
+        edges = find_edges(self, lambda u_v6:(self.edge_label((u_v6[0], u_v6[1])) == "rcmod"))
         for (u, v) in edges:
             v.features["top"] = True
             if  u.pos() in determined_labels:
@@ -568,7 +571,7 @@ class GraphWrapper(digraph):
                 if not self.has_edge((v, u)):
                     self.add_edge((v, u), label=ARG_LABEL)
         
-        edges = find_edges(self, lambda (u, v):(self.edge_label((u, v)) == "vmod"))
+        edges = find_edges(self, lambda u_v7:(self.edge_label((u_v7[0], u_v7[1])) == "vmod"))
         for (u, v) in edges:
             self.types.add("vmod")
             if u.pos() in determined_labels:
@@ -580,7 +583,7 @@ class GraphWrapper(digraph):
         
                                 
     def do_poss(self):
-        edges = find_edges(self, lambda (u, v):self.edge_label((u, v)) == "poss")
+        edges = find_edges(self, lambda u_v8:self.edge_label((u_v8[0], u_v8[1])) == "poss")
         for (possessed, possessor) in edges:
             self.types.add("Possessives")
             possessiveNode = getPossesive(self, possessor.minIndex())  # TODO: refine index
@@ -598,7 +601,7 @@ class GraphWrapper(digraph):
         """
         # Find relevant edges
         edges = find_edges(self,
-                           lambda (u, v): v.is_wh_question())
+                           lambda u_v9: u_v9[1].is_wh_question())
 
         # Handle each separately
         for (modifier, wh_question) in edges:
@@ -624,7 +627,7 @@ class GraphWrapper(digraph):
     
     
     def do_conj(self):
-        edges = find_edges(self, lambda((u, v)):self.edge_label((u, v)).startswith("conj_"))# and (not u.isPredicate) and (not v.isPredicate))
+        edges = find_edges(self, lambda u_v10:self.edge_label((u_v10[0], u_v10[1])).startswith("conj_"))# and (not u.isPredicate) and (not v.isPredicate))
         nodes = set([u for (u,_) in edges])
         for conj1 in nodes:
             curStartIndex = conj1.minIndex()+1
@@ -672,7 +675,7 @@ class GraphWrapper(digraph):
         
     
     def do_acomp(self):
-        edges = find_edges(self, lambda((u, v)):self.edge_label((u, v)) == "acomp" and u.isPredicate)
+        edges = find_edges(self, lambda u_v11:self.edge_label((u_v11[0], u_v11[1])) == "acomp" and u_v11[0].isPredicate)
         for predNode,acompNode in edges:
             neighbors = predNode.neighbors()
             subjs = multi_get(neighbors,subject_dependencies)
@@ -732,7 +735,7 @@ class GraphWrapper(digraph):
     
     def _do_conditionals(self):
         # find conditionals constructions
-        edges = find_edges(self, lambda((u, v)):(self.edge_label((u, v)) == "mark") and (v.text[0].word.lower() in ["if","while","because","although","as","once"]))
+        edges = find_edges(self, lambda u_v12:(self.edge_label((u_v12[0], u_v12[1])) == "mark") and (u_v12[1].text[0].word.lower() in ["if","while","because","although","as","once"]))
         for (markFather,markNode) in edges:
             neighbors = markFather.neighbors()
             incidents = markFather.incidents()
@@ -760,7 +763,7 @@ class GraphWrapper(digraph):
                 return True
     
     def do_existensials(self):
-        edges = find_edges(self, lambda((u, v)):self.edge_label((u, v)) == "expl" and len(self.neighbors(v)) == 0)
+        edges = find_edges(self, lambda u_v13:self.edge_label((u_v13[0], u_v13[1])) == "expl" and len(self.neighbors(u_v13[1])) == 0)
         for (u, v) in edges:
             self.types.add("existensials")
             u.text = deepcopy(u.text)
@@ -796,7 +799,7 @@ class GraphWrapper(digraph):
         
     def do_prop(self):
         # prenominal of definite
-        edges = find_edges(self, lambda (u, v):self.edge_label((u, v)) == "amod")
+        edges = find_edges(self, lambda u_v14:self.edge_label((u_v14[0], u_v14[1])) == "amod")
         for domain, mod in edges:
             if domain.pos() in determined_labels:  # the np by itself is definite
                 self.createPropRel(domain=domain, mod=mod)
@@ -924,7 +927,7 @@ class GraphWrapper(digraph):
         
         slots = dict([(n,min([w.index for w in n.text])) for n in self.nodes()])
         
-        reveresed_slots = {v-1:k for k,v in slots.items()}
+        reveresed_slots = {v-1:k for k,v in list(slots.items())}
         
         for i in range(numOfwords):
             if i not in reveresed_slots:
@@ -1065,7 +1068,7 @@ def dumpGraphsToTexFile(graphs, appendix, graphsPerFile, lib, outputType='pdf'):
     numOfGraphs = len(graphs)
     iterCount = int(math.ceil(numOfGraphs / float(graphsPerFile)))
     for r in range(iterCount):
-        curRange = range(graphsPerFile * r, min(graphsPerFile * (r + 1), numOfGraphs))
+        curRange = list(range(graphsPerFile * r, min(graphsPerFile * (r + 1), numOfGraphs)))
         filename = "autogen" + str(r) + ".tex"
         if HTML:
             filename = "autogen" + str(r) + ".html"
@@ -1079,7 +1082,7 @@ def dumpGraphsToTexFile(graphs, appendix, graphsPerFile, lib, outputType='pdf'):
             elif HTML:
                 fout.write("<h2>{0}</h2>\n".format(key))
 
-            for indind, curInd in enumerate(filter(lambda x:x in curRange, appendix[key])):
+            for indind, curInd in enumerate([x for x in appendix[key] if x in curRange]):
                 if PDF:
                     fout.write("\\hyperref[fig:{0}]{{{1}}}$\\;$\n".format(curInd,
                                                                tex_escape(graphs[curInd].gTag.tree.report())))
@@ -1112,7 +1115,7 @@ def dumpGraphsToTexFile(graphs, appendix, graphsPerFile, lib, outputType='pdf'):
             if PDF:
                 fout.write("\\clearpage")
 
-        print ("finished " + str(r))
+        print(("finished " + str(r)))
         fout.write(BOILER_END)
         fout.close()
         if PDF:
@@ -1141,7 +1144,7 @@ def tex_escape(text):
         '<': r'\textless',
         '>': r'\textgreater',
     }
-    regex = re.compile('|'.join(re.escape(unicode(key)) for key in sorted(conv.keys(), key=lambda item:-len(item))))
+    regex = re.compile('|'.join(re.escape(str(key)) for key in sorted(list(conv.keys()), key=lambda item:-len(item))))
     return regex.sub(lambda match: conv[match.group()], text)
     
 

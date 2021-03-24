@@ -1,5 +1,5 @@
-import sexprs
-import tree
+from . import sexprs
+from . import tree
 
 import codecs
 import re, sys
@@ -7,7 +7,7 @@ import re, sys
 #### Generic tree readers
 
 def read_trees_file(fh, extra_bracket=True):
-   sxps = sexprs.read_as_stream(unicode(fh.read()))
+   sxps = sexprs.read_as_stream(str(fh.read()))
    for s in sxps:
       if extra_bracket:
          yield tree.LingTree.from_sexpr(s[0])
@@ -17,9 +17,9 @@ def read_trees_file(fh, extra_bracket=True):
 def read_trees_oneperline_file(fh, extra_bracket=True):
    for line in fh:
       if extra_bracket:
-         yield tree.LingTree.from_str(unicode(line.strip()))
+         yield tree.LingTree.from_str(str(line.strip()))
       else:
-         yield tree.LingTree.from_str("(%s)" % unicode(line.strip()))
+         yield tree.LingTree.from_str("(%s)" % str(line.strip()))
 
 #### Heb
 def read_hebtb2_file(fh):
@@ -43,7 +43,7 @@ def __pennbio_remove_span_from_pos(pos):
    return pos.split(":",1)[0]
 
 def read_bioie_file(fh, keep_spans=False):
-   content = unicode("".join(__pennbio_filter_comments(fh)))
+   content = str("".join(__pennbio_filter_comments(fh)))
    sxps = sexprs.read_as_stream(content)
    for s in sxps:
       t = tree.LingTree.from_sexpr(s)
@@ -61,7 +61,7 @@ def read_genia_file(fh):
       line = re.sub(r"(\S+)/([^\s\)]+)",r"(\2 \1)",line)
       line = "(%s)" % line
       try:
-         yield tree.LingTree.from_str(unicode(line))
+         yield tree.LingTree.from_str(str(line))
       except KeyError: 
          sys.stderr.write("skipping bad tree: %s\n"%line)
    
@@ -70,22 +70,22 @@ if __name__=='__main__':
    # WSJ treeebank
    fh = codecs.open(base+"/WSJ/sec_00")
    trees = list(read_wsj_file(fh))
-   print trees[0].as_tagged_sent()
+   print(trees[0].as_tagged_sent())
 
    # pennBioIE
    fh = codecs.open(base+"/BIO/cyp/source_file_1000.mrg")
    trees = list(read_bioie_file(fh))
-   print trees[0].as_tagged_sent()
+   print(trees[0].as_tagged_sent())
 
    # genia
    fh = codecs.open(base+"/BIO/genia/tb-beta/GTB/91079577.tree")
    trees = list(read_genia_file(fh))
-   print trees[0].as_tagged_sent()
+   print(trees[0].as_tagged_sent())
 
    # heb tb
    fh = codecs.open(base+"/heb/tbv2gt/tbv2","r","utf8")
    trees = list(read_hebtb2_file(fh))
-   print trees[0].as_tagged_sent()
+   print(trees[0].as_tagged_sent())
 
 
 

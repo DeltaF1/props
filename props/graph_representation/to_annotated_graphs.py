@@ -43,7 +43,7 @@ if __name__ == "__main__":
             graphCounter+=1
     end=time.time()
 
-    print "parsing time {0}".format(end-start)
+    print("parsing time {0}".format(end-start))
 
     dumpGraphsToTexFile(graphs= graphs,graphsPerFile = 1500,appendix = appendix,lib=HOME_DIR+"/pdf/",outputType='pdf')
     # if manual_annotation.to_pdf_counter:

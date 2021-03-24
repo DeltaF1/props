@@ -12,7 +12,7 @@ Copyright (c) 2010, Marcel Hellkamp.
 License: MIT (see LICENSE.txt for details)
 """
 
-from __future__ import with_statement
+
 
 __author__ = 'Marcel Hellkamp'
 __version__ = '0.9.dev'
@@ -23,7 +23,7 @@ import cgi
 import email.utils
 import functools
 import hmac
-import httplib
+import http.client
 import itertools
 import mimetypes
 import os
@@ -31,26 +31,26 @@ import re
 import subprocess
 import sys
 import tempfile
-import thread
+import _thread
 import threading
 import time
 import warnings
 
-from Cookie import SimpleCookie
+from http.cookies import SimpleCookie
 from tempfile import TemporaryFile
 from traceback import format_exc
-from urllib import quote as urlquote
-from urlparse import urlunsplit, urljoin
+from urllib.parse import quote as urlquote
+from urllib.parse import urlunsplit, urljoin
 
 try: from collections import MutableMapping as DictMixin
 except ImportError: # pragma: no cover
     from UserDict import DictMixin
 
-try: from urlparse import parse_qs
+try: from urllib.parse import parse_qs
 except ImportError: # pragma: no cover
     from cgi import parse_qs
 
-try: import cPickle as pickle
+try: import pickle as pickle
 except ImportError: # pragma: no cover
     import pickle
 
@@ -74,16 +74,16 @@ if sys.version_info >= (3,0,0): # pragma: no cover
         """ Convert anything to unicode """
         return str(x, encoding=enc) if isinstance(x, bytes) else str(x)
 else:
-    from StringIO import StringIO as BytesIO
+    from io import StringIO as BytesIO
     bytes = str
     NCTextIOWrapper = None
     def touni(x, enc='utf8'):
         """ Convert anything to unicode """
-        return x if isinstance(x, unicode) else unicode(str(x), encoding=enc)
+        return x if isinstance(x, str) else str(str(x), encoding=enc)
 
 def tob(data, enc='utf8'):
     """ Convert anything to bytes """
-    return data.encode(enc) if isinstance(data, unicode) else bytes(data)
+    return data.encode(enc) if isinstance(data, str) else bytes(data)
 
 # Convert strings and unicode to native strings
 if sys.version_info >= (3,0,0):
@@ -271,7 +271,7 @@ class Router(object):
             parts = [p.replace('\\:',':') for p in token[::3]]
             names = token[1::3]
             if len(parts) > len(names): names.append(None)
-            pairs = zip(parts, names)
+            pairs = list(zip(parts, names))
             self.named[_name] = (rule, pairs)
         try:
             anon = list(anon)
@@ -281,10 +281,10 @@ class Router(object):
         except IndexError:
             msg = "Not enough arguments to fill out anonymous wildcards."
             raise RouteBuildError(msg)
-        except KeyError, e:
+        except KeyError as e:
             raise RouteBuildError(*e.args)
         
-        if args: url += ['?', urlencode(args.iteritems())]
+        if args: url += ['?', urlencode(iter(args.items()))]
         return ''.join(url)
 
     def match(self, environ):
@@ -352,10 +352,10 @@ class Router(object):
                 combined = '%s|(%s)' % (self.dynamic[-1][0].pattern, fpat)
                 self.dynamic[-1] = (re.compile(combined), self.dynamic[-1][1])
                 self.dynamic[-1][1].append((gpat, target))
-            except (AssertionError, IndexError), e: # AssertionError: Too many groups
+            except (AssertionError, IndexError) as e: # AssertionError: Too many groups
                 self.dynamic.append((re.compile('(^%s$)'%fpat),
                                     [(gpat, target)]))
-            except re.error, e:
+            except re.error as e:
                 raise RouteSyntaxError("Could not add Route: %s (%s)" % (rule, e))
 
     def _compile_pattern(self, rule):
@@ -404,7 +404,7 @@ class Bottle(object):
         ''' Mount a Bottle application to a specific URL prefix '''
         if not isinstance(app, Bottle):
             raise TypeError('Only Bottle instances are supported for now.')
-        script_path = '/'.join(filter(None, script_path.split('/')))
+        script_path = '/'.join([_f for _f in script_path.split('/') if _f])
         path_depth = script_path.count('/') + 1
         if not script_path:
             raise TypeError('Empty script_path. Perhaps you want a merge()?')
@@ -561,9 +561,9 @@ class Bottle(object):
         try:
             handler, args = self.match(environ)
             return handler(**args)
-        except HTTPResponse, e:
+        except HTTPResponse as e:
             return e
-        except Exception, e:
+        except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError))\
             or not self.catchall:
                 raise
@@ -586,10 +586,10 @@ class Bottle(object):
             return []
         # Join lists of byte or unicode strings. Mixed lists are NOT supported
         if isinstance(out, (tuple, list))\
-        and isinstance(out[0], (bytes, unicode)):
+        and isinstance(out[0], (bytes, str)):
             out = out[0][0:0].join(out) # b'abc'[0:0] -> b''
         # Encode unicode strings
-        if isinstance(out, unicode):
+        if isinstance(out, str):
             out = out.encode(response.charset)
         # Byte Strings are just returned
         if isinstance(out, bytes):
@@ -613,14 +613,14 @@ class Bottle(object):
         # Handle Iterables. We peek into them to detect their inner type.
         try:
             out = iter(out)
-            first = out.next()
+            first = next(out)
             while not first:
-                first = out.next()
+                first = next(out)
         except StopIteration:
             return self._cast('', request, response)
-        except HTTPResponse, e:
+        except HTTPResponse as e:
             first = e
-        except Exception, e:
+        except Exception as e:
             first = HTTPError(500, 'Unhandled exception', e, format_exc(10))
             if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError))\
             or not self.catchall:
@@ -630,8 +630,8 @@ class Bottle(object):
             return self._cast(first, request, response)
         if isinstance(first, bytes):
             return itertools.chain([first], out)
-        if isinstance(first, unicode):
-            return itertools.imap(lambda x: x.encode(response.charset),
+        if isinstance(first, str):
+            return map(lambda x: x.encode(response.charset),
                                   itertools.chain([first], out))
         return self._cast(HTTPError(500, 'Unsupported response type: %s'\
                                          % type(first)), request, response)
@@ -653,7 +653,7 @@ class Bottle(object):
             return out
         except (KeyboardInterrupt, SystemExit, MemoryError):
             raise
-        except Exception, e:
+        except Exception as e:
             if not self.catchall: raise
             err = '<h1>Critical error while processing request: %s</h1>' \
                   % environ.get('PATH_INFO', '/')
@@ -722,7 +722,7 @@ class Request(threading.local, DictMixin):
     def __delitem__(self, key): self[key] = ""; del(self.environ[key])
     def __iter__(self): return iter(self.environ)
     def __len__(self): return len(self.environ)
-    def keys(self): return self.environ.keys()
+    def keys(self): return list(self.environ.keys())
     def __setitem__(self, key, value):
         """ Shortcut for Request.environ.__setitem__ """
         self.environ[key] = value
@@ -784,7 +784,7 @@ class Request(threading.local, DictMixin):
         """ The QUERY_STRING parsed into an instance of :class:`MultiDict`. """
         data = parse_qs(self.query_string, keep_blank_values=True)
         get = self.environ['bottle.get'] = MultiDict()
-        for key, values in data.iteritems():
+        for key, values in data.items():
             for value in values:
                 get[key] = value
         return get
@@ -885,7 +885,7 @@ class Request(threading.local, DictMixin):
         """
         raw_dict = SimpleCookie(self.headers.get('Cookie',''))
         cookies = {}
-        for cookie in raw_dict.itervalues():
+        for cookie in raw_dict.values():
             cookies[cookie.key] = cookie.value
         return cookies
 
@@ -938,7 +938,7 @@ class Response(threading.local):
 
     def wsgiheader(self):
         ''' Returns a wsgi conform list of header/value pairs. '''
-        for c in self.COOKIES.values():
+        for c in list(self.COOKIES.values()):
             if c.OutputString() not in self.headers.getall('Set-Cookie'):
                 self.headers.append('Set-Cookie', c.OutputString())
         # rfc2616 section 10.2.3, 10.3.5
@@ -997,11 +997,11 @@ class Response(threading.local):
         '''
         if secret:
             value = touni(cookie_encode((key, value), secret))
-        elif not isinstance(value, basestring):
+        elif not isinstance(value, str):
             raise TypeError('Secret missing for non-string Cookie.')
 
         self.COOKIES[key] = value
-        for k, v in kargs.iteritems():
+        for k, v in kargs.items():
             self.COOKIES[key][k.replace('_', '-')] = v
 
     def delete_cookie(self, key, **kwargs):
@@ -1035,14 +1035,14 @@ class MultiDict(DictMixin):
     # collections.MutableMapping would be better for Python >= 2.6
     def __init__(self, *a, **k):
         self.dict = dict()
-        for k, v in dict(*a, **k).iteritems():
+        for k, v in dict(*a, **k).items():
             self[k] = v
 
     def __len__(self): return len(self.dict)
     def __iter__(self): return iter(self.dict)
     def __contains__(self, key): return key in self.dict
     def __delitem__(self, key): del self.dict[key]
-    def keys(self): return self.dict.keys()
+    def keys(self): return list(self.dict.keys())
     def __getitem__(self, key): return self.get(key, KeyError, -1)
     def __setitem__(self, key, value): self.append(key, value)
 
@@ -1056,7 +1056,7 @@ class MultiDict(DictMixin):
         return self.dict[key][index]
 
     def iterallitems(self):
-        for key, values in self.dict.iteritems():
+        for key, values in self.dict.items():
             for value in values:
                 yield key, value
 
@@ -1345,7 +1345,7 @@ def validate(**vkargs):
     """
     def decorator(func):
         def wrapper(**kargs):
-            for key, value in vkargs.iteritems():
+            for key, value in vkargs.items():
                 if key not in kargs:
                     abort(403, 'Missing parameter: %s' % key)
                 try:
@@ -1406,7 +1406,7 @@ class ServerAdapter(object):
         pass
         
     def __repr__(self):
-        args = ', '.join(['%s=%s'%(k,repr(v)) for k, v in self.options.items()])
+        args = ', '.join(['%s=%s'%(k,repr(v)) for k, v in list(self.options.items())])
         return "%s(%s)" % (self.__class__.__name__, args)
 
 
@@ -1470,8 +1470,8 @@ class FapwsServer(ServerAdapter):
         evwsgi.start(self.host, port)
         # fapws3 never releases the GIL. Complain upstream. I tried. No luck.
         if 'BOTTLE_CHILD' in os.environ and not self.quiet:
-            print "WARNING: Auto-reloading does not work with Fapws3."
-            print "         (Fapws3 breaks python thread support)"
+            print("WARNING: Auto-reloading does not work with Fapws3.")
+            print("         (Fapws3 breaks python thread support)")
         evwsgi.set_base_module(base)
         def app(environ, start_response):
             environ['wsgi.multiprocess'] = False
@@ -1676,9 +1676,9 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
         :param options: Options passed to the server adapter.
      """
     app = app or default_app()
-    if isinstance(app, basestring):
+    if isinstance(app, str):
         app = load_app(app)
-    if isinstance(server, basestring):
+    if isinstance(server, str):
         server = server_names.get(server)
     if isinstance(server, type):
         server = server(host=host, port=port, **kargs)
@@ -1686,10 +1686,10 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
         raise RuntimeError("Server must be a subclass of ServerAdapter")
     server.quiet = server.quiet or quiet
     if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
-        print "Bottle server starting up (using %s)..." % repr(server)
-        print "Listening on http://%s:%d/" % (server.host, server.port)
-        print "Use Ctrl-C to quit."
-        print
+        print("Bottle server starting up (using %s)..." % repr(server))
+        print("Listening on http://%s:%d/" % (server.host, server.port))
+        print("Use Ctrl-C to quit.")
+        print()
     try:
         if reloader:
             interval = min(interval, 1)
@@ -1702,7 +1702,7 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
     except KeyboardInterrupt:
         pass
     if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
-        print "Shutting down..."
+        print("Shutting down...")
 
 
 class FileCheckerThread(threading.Thread):
@@ -1719,12 +1719,12 @@ class FileCheckerThread(threading.Thread):
         exists = os.path.exists
         mtime = lambda path: os.stat(path).st_mtime
         files = dict()
-        for module in sys.modules.values():
+        for module in list(sys.modules.values()):
             path = getattr(module, '__file__', '')
             if path[-4:] in ('.pyo', '.pyc'): path = path[:-1]
             if path and exists(path): files[path] = mtime(path)
         while not self.status:
-            for path, lmtime in files.iteritems():
+            for path, lmtime in files.items():
                 if not exists(path) or mtime(path) > lmtime:
                     self.status = 3
             if not exists(self.lockfile):
@@ -1734,7 +1734,7 @@ class FileCheckerThread(threading.Thread):
             if not self.status:
                 time.sleep(self.interval)
         if self.status != 5:
-            thread.interrupt_main()
+            _thread.interrupt_main()
 
 
 def _reloader_child(server, app, interval):
@@ -1778,7 +1778,7 @@ def _reloader_observer(server, app, interval):
                 if os.path.exists(lockfile): os.unlink(lockfile)
                 sys.exit(p.poll())
             elif not server.quiet:
-                print "Reloading server..."
+                print("Reloading server...")
     except KeyboardInterrupt:
         pass
     if os.path.exists(lockfile): os.unlink(lockfile)
@@ -1817,7 +1817,7 @@ class BaseTemplate(object):
         self.name = name
         self.source = source.read() if hasattr(source, 'read') else source
         self.filename = source.filename if hasattr(source, 'filename') else None
-        self.lookup = map(os.path.abspath, lookup)
+        self.lookup = list(map(os.path.abspath, lookup))
         self.encoding = encoding
         self.settings = self.settings.copy() # Copy from class variable
         self.settings.update(settings) # Apply 
@@ -1948,13 +1948,13 @@ class SimpleTALTemplate(BaseTemplate):
 
     def render(self, *args, **kwargs):
         from simpletal import simpleTALES
-        from StringIO import StringIO
+        from io import StringIO
         for dictarg in args: kwargs.update(dictarg)
         # TODO: maybe reuse a context instead of always creating one
         context = simpleTALES.Context()
-        for k,v in self.defaults.items():
+        for k,v in list(self.defaults.items()):
             context.addGlobal(k, v)
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             context.addGlobal(k, v)
         output = StringIO()
         self.tpl.expand(context, output)
@@ -2038,8 +2038,8 @@ class SimpleTemplate(BaseTemplate):
 
         for line in template.splitlines(True):
             lineno += 1
-            line = line if isinstance(line, unicode)\
-                        else unicode(line, encoding=self.encoding)
+            line = line if isinstance(line, str)\
+                        else str(line, encoding=self.encoding)
             if lineno <= 2:
                 m = re.search(r"%.*coding[:=]\s*([-\w\.]+)", line)
                 if m: self.encoding = m.group(1)
@@ -2184,7 +2184,7 @@ DEBUG = False
 MEMFILE_MAX = 1024*100
 
 #: A dict to map HTTP status codes (e.g. 404) to phrases (e.g. 'Not Found')
-HTTP_CODES = httplib.responses
+HTTP_CODES = http.client.responses
 HTTP_CODES[418] = "I'm a teapot" # RFC 2324
 
 #: The default template used for error pages. Override with @error()

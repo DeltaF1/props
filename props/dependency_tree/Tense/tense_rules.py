@@ -162,7 +162,7 @@ def get_tense(predicate,run_simple_rules = True):
     flag_TO,span_TO,node = predicate._get_span_of_filtered_children(TO_child_func)
 
     # run passive rules
-    passive_nodes = filter(lambda x:x.get_parent_relation() in passive_dependencies, predicate.children)
+    passive_nodes = [x for x in predicate.children if x.get_parent_relation() in passive_dependencies]
     if passive_nodes:
         child = passive_nodes[0]
         for f in passive_voice_tense_rules:

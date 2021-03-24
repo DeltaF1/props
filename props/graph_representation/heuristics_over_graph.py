@@ -30,17 +30,17 @@ class Heuristics:
                 for chch in gr.gr.neighbors(ch):
                     if gr.gr.edge_label((ch,chch)).find("sbj") > -1 or gr.gr.edge_label((ch,chch)).find("sub") > -1:
                         ch_subj[ch] = chch
-                if ch not in ch_subj.keys():
+                if ch not in list(ch_subj.keys()):
                     ch_no_subj.append(ch)
 
             # if there is only one subject, connect is as a subject of the rest
             if len(set(ch_subj.values())) == 1 and ch_no_subj:
-                subj = ch_subj.values()[0]
+                subj = list(ch_subj.values())[0]
                 for ch in ch_no_subj:
                     if not gr.gr.is_edge_exists(ch,subj) and min([x.index for x in subj.text]) < min([x.index for x in ch.text]):
                         flag = True
                         gr.types.add("Heuristics - Subject")
-                        ch_subj.values()[0].features["heuristics"] = True
+                        list(ch_subj.values())[0].features["heuristics"] = True
                         gr.gr.add_edge((ch,subj),"h-sub")
         return flag
 
@@ -59,19 +59,19 @@ class Heuristics:
                 for chch in gr.gr.neighbors(ch):
                     if gr.gr.edge_label((ch,chch)).find("obj") > -1 :
                         ch_obj[ch] = chch
-                if ch not in ch_obj.keys():
+                if ch not in list(ch_obj.keys()):
                     ch_no_obj.append(ch)
 
             if len(set(ch_obj.values())) == 1 and ch_no_obj:
-                obj = ch_obj.values()[0]
-                max_key_ind = max([x.index for key,_ in ch_obj.iteritems() for x in key.text] )
+                obj = list(ch_obj.values())[0]
+                max_key_ind = max([x.index for key,_ in ch_obj.items() for x in key.text] )
                 for ch in ch_no_obj:
                     min_ch_ind = min([x.index for x in ch.text])
                     # the object should be after the predicate and related to a predicate that is before the current predicate
                     if not gr.gr.is_edge_exists(ch,obj) and min([x.index for x in obj.text]) > min_ch_ind and min_ch_ind > max_key_ind:
                         flag = True
                         gr.types.add("Heuristics - Object")
-                        ch_obj.values()[0].features["heuristics"] = True
+                        list(ch_obj.values())[0].features["heuristics"] = True
                         gr.gr.add_edge((ch,obj),"h-obj")
         return flag
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             graphCounter+=1
     end=time.time()
 
-    print "parsing time {0}".format(end-start)
+    print("parsing time {0}".format(end-start))
 
     dumpGraphsToTexFile(graphs= graphs,graphsPerFile = 1500,appendix = appendix,lib=HOME_DIR+"pdf\\",outputType='html')
 

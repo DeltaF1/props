@@ -129,7 +129,7 @@ class FixGraph:
                             change=True
             #7
             edges = find_edges(self.gr,
-                               lambda (u,v):isTime(u)and isTime(v) and len(self.gr.neighbors(u))==1)
+                               lambda u_v6:isTime(u_v6[0])and isTime(u_v6[1]) and len(self.gr.neighbors(u_v6[0]))==1)
             for curFather,curSon in edges:
                 for curNode in self.gr.neighbors(curSon):
                     self.gr.add_edge(edge=(curFather,curNode),
@@ -139,7 +139,7 @@ class FixGraph:
             
             #8
             edges = find_edges(self.gr,
-                               lambda (u,v):(isTime(v) or isLocation(v)) and isPreposition(u) and u.is_time_prep())
+                               lambda u_v7:(isTime(u_v7[1]) or isLocation(u_v7[1])) and isPreposition(u_v7[0]) and u_v7[0].is_time_prep())
             
             for prepNode,timeNode in edges:
                 if (len(self.gr.neighbors(prepNode))==1):
@@ -176,7 +176,7 @@ class FixGraph:
             
             #11
             edges = find_edges(self.gr,
-                               lambda (u,v):self.gr.edge_label((u,v))=="loc" and len(self.gr.neighbors(u))>1)
+                               lambda u_v8:self.gr.edge_label((u_v8[0],u_v8[1]))=="loc" and len(self.gr.neighbors(u_v8[0]))>1)
             
             for topNode,loc in edges:
                 for curNeigbor in self.gr.neighbors(topNode):
@@ -191,7 +191,7 @@ class FixGraph:
             
             #12
             edges = find_edges(graph=self.gr, 
-                               filterFunc = lambda (u,v): isProp(u) and isLocation(v))
+                               filterFunc = lambda u_v: isProp(u_v[0]) and isLocation(u_v[1]))
             
             for _,locNode in edges:
                 for curFather in self.gr.incidents(locNode):
@@ -203,7 +203,7 @@ class FixGraph:
                 
             #13
             edges = find_edges(graph=self.gr, 
-                               filterFunc = lambda (u,v): isProp(u) and v.isPredicate and (len(self.gr.neighbors(v)) ==0) and (len(self.gr.incidents(u)) ==1) and (len(self.gr.neighbors(u)) ==1))
+                               filterFunc = lambda u_v1: isProp(u_v1[0]) and u_v1[1].isPredicate and (len(self.gr.neighbors(u_v1[1])) ==0) and (len(self.gr.incidents(u_v1[0])) ==1) and (len(self.gr.neighbors(u_v1[0])) ==1))
             
             for propNode,predNode in edges:
                 change = True
@@ -241,7 +241,7 @@ class FixGraph:
             
             #15
             edges = find_edges(graph=self.gr, 
-                               filterFunc = lambda (u,v): isProp(v) and (v.parent_relation == "acomp") and len(self.gr.neighbors(v))==1 and u.isPredicate)
+                               filterFunc = lambda u_v2: isProp(u_v2[1]) and (u_v2[1].parent_relation == "acomp") and len(self.gr.neighbors(u_v2[1]))==1 and u_v2[0].isPredicate)
             
             for pred, prop in edges:
                 acompNode = self.gr.neighbors(prop)[0]
@@ -267,7 +267,7 @@ class FixGraph:
             
             #16
             edges = find_edges(graph=self.gr,
-                               filterFunc = lambda (u,v): (isProp(v) or isRcmodProp(v)) and (u in self.gr.neighbors(v)))
+                               filterFunc = lambda u_v3: (isProp(u_v3[1]) or isRcmodProp(u_v3[1])) and (u_v3[0] in self.gr.neighbors(u_v3[1])))
             
             for _,v in edges:
                 if (len(self.gr.neighbors(v))==1):
@@ -276,7 +276,7 @@ class FixGraph:
             
             #17
             edges = find_edges(graph=self.gr,
-                               filterFunc = lambda (u,v): self.gr.edge_label((u,v))==SOURCE_LABEL and (len(self.gr.neighbors(v))==0))
+                               filterFunc = lambda u_v4: self.gr.edge_label((u_v4[0],u_v4[1]))==SOURCE_LABEL and (len(self.gr.neighbors(u_v4[1]))==0))
             for _,v in edges:
                 curStr = " ".join([w.word for w in v.text])
                 if curStr in contractions:
@@ -285,7 +285,7 @@ class FixGraph:
                         
             #18 - verbal complements
             edges = find_edges(graph=self.gr,
-                               filterFunc = lambda (u,v): self.gr.edge_label((u,v))=='ccomp' and u.isPredicate)
+                               filterFunc = lambda u_v5: self.gr.edge_label((u_v5[0],u_v5[1]))=='ccomp' and u_v5[0].isPredicate)
             for u,v in edges:
                 self.gr.del_edge((u,v))
                 self.gr.add_edge(edge=(u,v),
@@ -466,9 +466,9 @@ class FixGraph:
         """
         
         edges = find_edges(graph = self.gr, 
-                           filterFunc = lambda (u,v): (not isDefinite(u)) and (isProp(v)or isRcmodProp(v)) and (not v.is_prenominal()))
+                           filterFunc = lambda u_v9: (not isDefinite(u_v9[0])) and (isProp(u_v9[1])or isRcmodProp(u_v9[1])) and (not u_v9[1].is_prenominal()))
         
-        for counter,(u,v) in enumerate(sorted(edges,key= lambda (_,propNode):get_min_max_span(self.gr,propNode)[0])):
+        for counter,(u,v) in enumerate(sorted(edges,key= lambda __propNode:get_min_max_span(self.gr,__propNode[1])[0])):
             curLabel = self.gr.edge_label((u,v))
             self.gr.del_edge((u,v))
             self.gr.add_edge(edge =(u,v),

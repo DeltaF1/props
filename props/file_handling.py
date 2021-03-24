@@ -15,7 +15,7 @@ def save_depTrees_to_file(inp,out):
     dep_trees = dependency_tree.tree_readers.read_trees_file(inp)
     
     for tree in dep_trees:
-        print counter
+        print(counter)
         assert(len(tree.children)==1)
         f.write(tree.children[0].to_original_format(root=True)+"\n")
         counter+=1    
@@ -30,7 +30,7 @@ def save_verbal_predicates_to_file(inp,out):
     for tree in dep_trees:
         
         for verb_subtree in tree.collect_verbal_predicates():
-            print counter
+            print(counter)
             f.write(verb_subtree.to_original_format(root=True)+"\n")
             counter+=1
             

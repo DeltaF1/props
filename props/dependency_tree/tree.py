@@ -1,4 +1,4 @@
-from __builtin__ import dir
+from builtins import dir
 from props.graph_representation.graphParsingException import GraphParsingException
 from nltk.tree import Tree
 from props.graph_representation.word import Word
@@ -8,7 +8,8 @@ from props.dependency_tree.definitions import *
 from props.constituency_tree.definitions import *
 from props.constituency_tree.my_definitions import any_in
 import copy,os
-from Tense import tense_rules
+from .Tense import tense_rules
+from functools import reduce
 UNDERSCORE = "_"
 
 
@@ -215,7 +216,7 @@ class DepTree(object):
         copSubjChild = self.children[self.copSubj[0]]
         d = copSubjChild._get_subtree_nodes(includeHead = False)
         ret = {"Value":copSubjChild,
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
     
     # get the copular predicate
@@ -224,7 +225,7 @@ class DepTree(object):
         copObjChild = self.children[self.copObj[0]]
         d = copObjChild._get_subtree_nodes(includeHead = False)
         ret = {"Value":copObjChild,
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
        
     def _COPULAR_PREDICATE_FEATURE_Propogation(self):
@@ -255,7 +256,7 @@ class DepTree(object):
             return []
         if self.pos in VERB_POS:
             return [self]
-        if (self.pos == VBG) and any_in(child_dic.keys(),arguments_dependencies):
+        if (self.pos == VBG) and any_in(list(child_dic.keys()),arguments_dependencies):
             return [self]
         return []
     
@@ -287,7 +288,7 @@ class DepTree(object):
         #self.children = self.adjectivalChild
         d = adjChild._get_subtree_nodes(includeHead = False)
         ret = {"Value":adjChild,#adjChild.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         #self.children = childrenCopy
         return ret
     
@@ -297,7 +298,7 @@ class DepTree(object):
         self.children = [x for x in self.children if x not in self.adjectivalChildren]
         d = self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),#self.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
     
@@ -373,7 +374,7 @@ class DepTree(object):
     def _RELCLAUSE_PREDICATE_FEATURE_Relclause(self):
         d = self.rcChild._get_subtree_nodes(includeHead = True)
         ret = {"Value":self.rcChild,
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
     
     
@@ -389,7 +390,7 @@ class DepTree(object):
         d = self.rcChild._get_subtree_nodes(includeHead = True)
   
         ret = {"Value":True,
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
     
     def _RELCLAUSE_PREDICATE_FEATURE_Rest(self):
@@ -397,7 +398,7 @@ class DepTree(object):
         self.children = [x for i,x in enumerate(self.children) if i not in self.rcChildIndList]
         d = self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
     
@@ -431,7 +432,7 @@ class DepTree(object):
         #if (self.cond_rel in [COND_IF,COND_AFTER]):
         d = self.markChildNode._get_subtree_nodes(includeHead = True)
         ret = {"Value":self.markChildNode,#self.markChildNode.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
         #else
         #return False,False
@@ -443,7 +444,7 @@ class DepTree(object):
         self.children = [x for i,x in enumerate(self.children) if i not in self.markChildren]
         d = self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),#self.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
         #else
@@ -596,7 +597,7 @@ class DepTree(object):
         #span of the tokens involved - initialized to false
         span=0
         # check if one of dependents causes the negation of this predicate
-        negating_nodes = filter(lambda x:x.get_parent_relation() in negation_dependencies, self.children)
+        negating_nodes = [x for x in self.children if x.get_parent_relation() in negation_dependencies]
         if not negating_nodes:
             negating_nodes = [c for c in self.children if
                               c.word in negating_words and len(c.children)==0]
@@ -613,7 +614,7 @@ class DepTree(object):
         #span of the tokens involved - initialized to false
         span=0
         # check if one of dependents causes the negation of this predicate
-        det_nodes = filter(lambda x:x.get_parent_relation() in determiner_dependencies, self.children)
+        det_nodes = [x for x in self.children if x.get_parent_relation() in determiner_dependencies]
         if det_nodes:
             span = [child.id for child in det_nodes]
             return  {"Value":" ".join([child.word for child in 
@@ -641,7 +642,7 @@ class DepTree(object):
         #span of the tokens involved - initialized to false
         span=0
         # check if one of dependents causes the negation of this predicate
-        passive_nodes = filter(lambda x:x.get_parent_relation() in passive_dependencies, self.children)
+        passive_nodes = [x for x in self.children if x.get_parent_relation() in passive_dependencies]
         if passive_nodes:
             #child = passive_nodes[0]
             ids = [x.id for x in passive_nodes]
@@ -660,7 +661,7 @@ class DepTree(object):
     # catch all feature, for now theres no parsing of arguments
     def _DONT_VERBAL_ARGUMENT_FEATURE_All_Text(self):
         dic = self._get_subtree()
-        return (True, dic.keys())
+        return (True, list(dic.keys()))
 
     #returns the number of nodes in this subtree
     def size(self):
@@ -670,7 +671,7 @@ class DepTree(object):
     # returns (True/False, span) : True/False indicates if the node has children after the filter.
     #                              span indicates the filtered children min and max indexes
     def _get_span_of_filtered_children(self, child_func):
-        nodes = filter(lambda x:child_func(x), self.children)
+        nodes = [x for x in self.children if child_func(x)]
         if nodes == []:
             return False,(-1,-1), None
         ids = [x.id for x in nodes]
@@ -700,13 +701,13 @@ class DepTree(object):
         span=0
         
         # check if one of dependents indicates time of this predicate
-        time_nodes = filter(lambda x:x.get_parent_relation() in time_dependencies, self.children)
+        time_nodes = [x for x in self.children if x.get_parent_relation() in time_dependencies]
         if time_nodes:
             span_list = []
             for time_node in time_nodes:
                 value = time_node
                 min_index, max_index = time_node.get_span_of_subtree()
-                span_list += range(min_index,max_index+1)
+                span_list += list(range(min_index,max_index+1))
             span_list.sort()
             return (value,span_list)
         return (False,span)
@@ -726,11 +727,11 @@ class DepTree(object):
 
     def _DONT_RUN_VERBAL_PREDICATE_FEATURE_TODO_prep_as(self):
 
-        relevant_children = filter(prep_as_child_func,self.children)
+        relevant_children = list(filter(prep_as_child_func,self.children))
         if not relevant_children:
             return False,False
         if (len(relevant_children) !=1):
-            print self.get_original_sentence(root=False)
+            print(self.get_original_sentence(root=False))
         child = relevant_children[0]
         d = child._get_subtree_nodes(includeHead = True)
         return  {"Value":child.get_original_sentence(root=False),
@@ -838,7 +839,7 @@ class DepTree(object):
         #self.children.remove(self.children[self.possChild[0]])
         d = {}#self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),#self.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
     
@@ -850,9 +851,9 @@ class DepTree(object):
         pobjChildren = any_in([c.parent_relation for c in prepChild.children], ["pobj"])
         pcompChildren = any_in([c.parent_relation for c in prepChild.children], ["pcomp"])
         if (len(pobjChildren)>1) or (len(pcompChildren)>1):
-            print pobjChildren
-            print self.word
-            print GraphParsingException("misproper handling for more than one pobj child " +self.report())
+            print(pobjChildren)
+            print(self.word)
+            print(GraphParsingException("misproper handling for more than one pobj child " +self.report()))
         
         if pobjChildren:
             pobjChild = prepChild.children[pobjChildren[0]]
@@ -906,7 +907,7 @@ class DepTree(object):
         poss.children = [x for x in poss.children if x.parent_relation != POSSESSIVE_LABEL]
         d = poss._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(poss),#poss.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         poss.children = childrenCopy
         return ret
     
@@ -924,19 +925,19 @@ class DepTree(object):
         possessive_child = possesive_children[0]
         d = possessive_child._get_subtree_nodes(includeHead = True)
         ret = {"Value":possessive_child,#poss.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         return ret
     
     # get the Possessed of a possesive construction
     def _POSSESSIVE_PREDICATE_FEATURE_Possessed(self):
         childrenCopy = [x for x in self.children]
         if (self.possChild[0] >= len(self.children)):
-            print "stub" 
+            print("stub") 
         self.children = [x for i,x in enumerate(self.children) if i!=self.possChild[0]]
         #self.children.remove(self.children[self.possChild[0]])
         d = self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),#self.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
 
@@ -954,7 +955,7 @@ class DepTree(object):
         self.children = [x for x in self.children if x not in self.apposChild]
         d = self._get_subtree_nodes(includeHead = True)
         ret = {"Value":copy.copy(self),#self.get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         self.children = childrenCopy
         return ret
     
@@ -970,7 +971,7 @@ class DepTree(object):
         #self.children = self.apposChild
         d = self.apposChild[0]._get_subtree_nodes(includeHead = False)
         ret = {"Value":self.apposChild[0],#self.apposChild[0].get_original_sentence(False),
-               "Span":d.keys()}
+               "Span":list(d.keys())}
         #self.children = childrenCopy
         return ret
         
@@ -1011,7 +1012,7 @@ class DepTree(object):
     def _DONT_RUN_VERBAL_PREDICATE_FEATURE_TODO_Infinitive(self):
         ret = [False,[]]
         if self.parent_relation in clausal_complement:
-            to_children = filter(lambda x:x.pos == TO, self.children)
+            to_children = [x for x in self.children if x.pos == TO]
             ret[1].extend([c.id for c in to_children])
         if ret[1]:
             ret[0] = True
@@ -1021,17 +1022,17 @@ class DepTree(object):
 
 
     def _EXPERIMENTAL_VERBAL_PREDICATE_FEATURE_Infinitive(self):
-        xcomp_children = filter(lambda x:x.get_parent_relation() in clausal_complement, self.children)
+        xcomp_children = [x for x in self.children if x.get_parent_relation() in clausal_complement]
         ret = ([],[])
         for xcomp_child in xcomp_children:
-            aux_children = filter(lambda x:x.get_parent_relation() in aux_dependencies, xcomp_child.children)
-            to_children = filter(lambda x:x.pos == TO, aux_children)
+            aux_children = [x for x in xcomp_child.children if x.get_parent_relation() in aux_dependencies]
+            to_children = [x for x in aux_children if x.pos == TO]
             if not to_children:
                 return (False,False)
             assert (len(to_children)==1)
             to_child = to_children[0]
-            subj_children = filter(lambda x:x.get_parent_relation() in subject_dependencies, xcomp_child.children)
-            adv_children = filter(lambda x:x.get_parent_relation() in adverb_dependencies, self.children)
+            subj_children = [x for x in xcomp_child.children if x.get_parent_relation() in subject_dependencies]
+            adv_children = [x for x in self.children if x.get_parent_relation() in adverb_dependencies]
 #           if subj_children:
 #               print(" ".join([self.word,subj_children[0].word,to_child.word,xcomp_child.word]))
 #           if adv_children:

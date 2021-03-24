@@ -32,11 +32,12 @@ MacOS users might run into issues installing JPype. An instruction to manually i
 
 ### Prerequisites
 
-* python 2.7
+* python 3
 * java 7 (make sure to set the JAVA_HOME enviroment variable (e.g., /usr/lib/[*your_java_folder*])
 
 ### Testing 
 
-Run 'python ./unit_tests/sanity_test.py'
+Run 'python test.py'
 
+This version has been automatically updated to python 3, but is **UNTESTED**.
 
