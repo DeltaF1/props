@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+graphviz = "*"
+pygraph = {git = "https://github.com/FranciscoMoretti/pygraph.git"}
+python-graph-dot = "*"
+nltk = "*"
+python-graph-core = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
